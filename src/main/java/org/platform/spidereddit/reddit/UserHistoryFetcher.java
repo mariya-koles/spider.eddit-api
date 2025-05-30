@@ -5,6 +5,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.platform.spidereddit.text.WordGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,11 +25,15 @@ public class UserHistoryFetcher implements Runnable {
     private final OkHttpClient httpClient;
     private final ObjectMapper objectMapper;
     private static final CharArraySet STOP_WORDS = EnglishAnalyzer.getDefaultStopSet();
+    private final WordGraph wordGraph;
+    private final String accessToken;
 
-    public UserHistoryFetcher(String username) {
+    public UserHistoryFetcher(String username, WordGraph wordGraph, String accessToken) {
         this.username = username;
         this.httpClient = new OkHttpClient();
         this.objectMapper = new ObjectMapper();
+        this.wordGraph = wordGraph;
+        this.accessToken = accessToken;
     }
 
     @Override
@@ -38,23 +43,33 @@ public class UserHistoryFetcher implements Runnable {
             words.addAll(fetchCommentWords());
             words.addAll(fetchPostWords());
 
-            // TODO: Pass words to a central co-occurrence analyzer
+            if (!words.isEmpty()) {
+                wordGraph.recordCoOccurrences(words.toArray(new String[0]));
+            }
             log.info("Fetched {} words for user: {}", words.size(), username);
 
         } catch (IOException e) {
             log.error("Error fetching data for user {}: {}", username, e.getMessage());
         }
+        log.info("Finished processing user: {}", username);
     }
 
     private List<String> fetchCommentWords() throws IOException {
-        String url = "https://www.reddit.com/user/" + username + "/comments.json?limit=25";
+        String url = "https://oauth.reddit.com/user/" + username + "/comments?limit=25";
 
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "JavaSpideredditBot/1.0")
+                .header("Authorization", "Bearer " + accessToken)
+                .header("User-Agent", RedditConfig.USER_AGENT)
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+            if (response.code() == 429) {
+                log.error("Rate limited while fetching user history. Retrying in 2 seconds...");
+                Thread.sleep(2000);
+                return fetchCommentWords();
+            }
+
             if (!response.isSuccessful()) return List.of();
 
             JsonNode root = objectMapper.readTree(response.body().string());
@@ -66,18 +81,28 @@ public class UserHistoryFetcher implements Runnable {
                     .map(token -> token.toLowerCase(Locale.ENGLISH))
                     .filter(token -> !token.isBlank() && !STOP_WORDS.contains(token))
                     .toList();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
     private List<String> fetchPostWords() throws IOException {
-        String url = "https://www.reddit.com/user/" + username + "/submitted.json?limit=25";
+        String url = "https://oauth.reddit.com/user/" + username + "/submitted?limit=25";
 
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "JavaSpideredditBot/1.0")
+                .header("Authorization", "Bearer " + accessToken)
+                .header("User-Agent", RedditConfig.USER_AGENT)
                 .build();
 
         try (Response response = httpClient.newCall(request).execute()) {
+
+            if (response.code() == 429) {
+                log.error("Rate limited while fetching user history. Retrying in 2 seconds...");
+                Thread.sleep(2000);
+                return fetchPostWords();
+            }
+
             if (!response.isSuccessful()) return List.of();
 
             JsonNode root = objectMapper.readTree(response.body().string());
@@ -92,6 +117,8 @@ public class UserHistoryFetcher implements Runnable {
                     .map(token -> token.toLowerCase(Locale.ENGLISH))
                     .filter(token -> !token.isBlank() && !STOP_WORDS.contains(token))
                     .toList();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

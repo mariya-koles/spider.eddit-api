@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.util.Base64;
 
-@AllArgsConstructor
 public class RedditAuthService {
 
     private static final String TOKEN_URL = "https://www.reddit.com/api/v1/access_token";
@@ -16,9 +15,29 @@ public class RedditAuthService {
     private final String clientSecret;
     private final String username;
     private final String password;
+    private final OkHttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
-    private final OkHttpClient httpClient = new OkHttpClient();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    // Constructor for production use
+    public RedditAuthService(String clientId, String clientSecret, String username, String password) {
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.username = username;
+        this.password = password;
+        this.httpClient = new OkHttpClient();
+        this.objectMapper = new ObjectMapper();
+    }
+
+    // Constructor for testing with dependency injection
+    public RedditAuthService(String clientId, String clientSecret, String username, String password, 
+                           OkHttpClient httpClient, ObjectMapper objectMapper) {
+        this.clientId = clientId;
+        this.clientSecret = clientSecret;
+        this.username = username;
+        this.password = password;
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
+    }
 
     public String fetchAccessToken() throws IOException {
         String credentials = clientId + ":" + clientSecret;

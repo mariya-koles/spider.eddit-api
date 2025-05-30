@@ -1,4 +1,4 @@
-package org.platform.spidereddit;
+package org.platform.spidereddit.reddit;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
@@ -8,7 +8,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.platform.spidereddit.reddit.RedditClient;
 
 import java.io.IOException;
 import java.util.Set;

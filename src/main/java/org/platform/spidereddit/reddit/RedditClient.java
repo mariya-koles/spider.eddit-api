@@ -26,9 +26,9 @@ public class RedditClient {
     private final ObjectMapper objectMapper;
     private final String accessToken;
 
-    public RedditClient(String accessToken) {
-        this.httpClient = new OkHttpClient();
-        this.objectMapper = new ObjectMapper();
+    public RedditClient(OkHttpClient httpClient, ObjectMapper objectMapper, String accessToken) {
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
         this.accessToken = accessToken;
     }
 
@@ -90,9 +90,10 @@ public class RedditClient {
     private void collectAuthors(JsonNode commentNode, Set<String> usernames) {
         Optional.ofNullable(commentNode.get("data"))
                 .map(data -> data.get("author"))
+                .filter(JsonNode::isTextual)
                 .map(JsonNode::asText)
                 .map(String::toLowerCase)
-                .filter(author -> !author.equals("[deleted"))
+                .filter(author -> !author.equals("[deleted") && !author.equals("null"))
                 .ifPresent(usernames::add);
 
         Optional.ofNullable(commentNode.get("data"))

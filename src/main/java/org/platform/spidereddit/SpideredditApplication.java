@@ -1,5 +1,7 @@
 package org.platform.spidereddit;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import okhttp3.OkHttpClient;
 import org.platform.spidereddit.crawler.CrawlManager;
 import org.platform.spidereddit.reddit.RedditAuthService;
 import org.platform.spidereddit.reddit.RedditClient;
@@ -19,9 +21,10 @@ public class SpideredditApplication {
         SpringApplication.run(SpideredditApplication.class, args);
 
         WordGraph wordGraph = new WordGraph();
-
+        OkHttpClient httpClient = new OkHttpClient();
+        ObjectMapper objectMapper = new ObjectMapper();
         RedditAuthService auth = new RedditAuthService(RedditConfig.CLIENT_ID, RedditConfig.CLIENT_SECRET, RedditConfig.USERNAME, RedditConfig.PASSWORD);
-        RedditClient client = new RedditClient(auth.fetchAccessToken());
+        RedditClient client = new RedditClient(httpClient, objectMapper, auth.fetchAccessToken());
 
         String postId = client.extractPostId("");
 

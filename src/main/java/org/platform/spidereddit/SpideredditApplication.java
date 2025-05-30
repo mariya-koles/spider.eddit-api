@@ -15,7 +15,7 @@ public class SpideredditApplication {
         SpringApplication.run(SpideredditApplication.class, args);
 
         RedditClient client = new RedditClient();
-        String postId = client.extractPostId("https://www.reddit.com/r/h3h3productions/comments/1kz3uny/in_his_new_video_noah_samsen_is_sponsored_by/");
+        String postId = client.extractPostId("");
         Set<String> commenters = client.getTopLevelCommenters(postId);
         System.out.println(commenters);
 

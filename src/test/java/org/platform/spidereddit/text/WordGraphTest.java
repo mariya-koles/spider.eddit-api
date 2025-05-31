@@ -97,109 +97,10 @@ class WordGraphTest {
         });
     }
 
-    @Test
-    void testExportToJsonFile_basicExport() throws IOException {
-        String[] words = {"hello", "world", "test"};
-        wordGraph.recordCoOccurrences(words);
-        
-        Path outputFile = tempDir.resolve("test-graph.json");
-        
-        assertDoesNotThrow(() -> {
-            wordGraph.exportToJsonFile(outputFile, 1);
-        });
-        
-        assertTrue(outputFile.toFile().exists());
-        assertTrue(outputFile.toFile().length() > 0);
-    }
 
-    @Test
-    void testExportToJsonFile_validJsonStructure() throws IOException {
-        String[] words = {"hello", "world", "test"};
-        wordGraph.recordCoOccurrences(words);
-        
-        Path outputFile = tempDir.resolve("test-graph.json");
-        wordGraph.exportToJsonFile(outputFile, 1);
-        
-        // Verify the JSON structure
-        JsonNode root = objectMapper.readTree(outputFile.toFile());
-        
-        assertTrue(root.has("nodes"));
-        assertTrue(root.has("edges"));
-        assertTrue(root.get("nodes").isArray());
-        assertTrue(root.get("edges").isArray());
-    }
 
-    @Test
-    void testExportToJsonFile_minWeightFiltering() throws IOException {
-        String[] words = {"hello", "world"};
-        wordGraph.recordCoOccurrences(words); // This creates weight 1
-        
-        Path outputFile1 = tempDir.resolve("test-graph-min1.json");
-        Path outputFile2 = tempDir.resolve("test-graph-min2.json");
-        
-        wordGraph.exportToJsonFile(outputFile1, 1); // Should include edges
-        wordGraph.exportToJsonFile(outputFile2, 2); // Should exclude edges
-        
-        JsonNode root1 = objectMapper.readTree(outputFile1.toFile());
-        JsonNode root2 = objectMapper.readTree(outputFile2.toFile());
-        assertTrue(root1.get("edges").size() > 0);
-        assertEquals(0, root2.get("edges").size());
-    }
 
-    @Test
-    void testExportToJsonFile_emptyGraph() throws IOException {
-        Path outputFile = tempDir.resolve("empty-graph.json");
-        
-        assertDoesNotThrow(() -> {
-            wordGraph.exportToJsonFile(outputFile, 1);
-        });
-        
-        JsonNode root = objectMapper.readTree(outputFile.toFile());
-        assertEquals(0, root.get("nodes").size());
-        assertEquals(0, root.get("edges").size());
-    }
 
-    @Test
-    void testExportToJsonFile_nodeStructure() throws IOException {
-        String[] words = {"hello", "world"};
-        wordGraph.recordCoOccurrences(words);
-        
-        Path outputFile = tempDir.resolve("test-nodes.json");
-        wordGraph.exportToJsonFile(outputFile, 1);
-        
-        JsonNode root = objectMapper.readTree(outputFile.toFile());
-        JsonNode nodes = root.get("nodes");
-        
-        assertTrue(nodes.size() > 0);
-
-        for (JsonNode node : nodes) {
-            assertTrue(node.has("id"));
-            assertFalse(node.get("id").asText().isEmpty());
-        }
-    }
-
-    @Test
-    void testExportToJsonFile_edgeStructure() throws IOException {
-        String[] words = {"hello", "world"};
-        wordGraph.recordCoOccurrences(words);
-        
-        Path outputFile = tempDir.resolve("test-edges.json");
-        wordGraph.exportToJsonFile(outputFile, 1);
-        
-        JsonNode root = objectMapper.readTree(outputFile.toFile());
-        JsonNode edges = root.get("edges");
-        
-        assertTrue(edges.size() > 0);
-
-        for (JsonNode edge : edges) {
-            assertTrue(edge.has("source"));
-            assertTrue(edge.has("target"));
-            assertTrue(edge.has("weight"));
-            assertFalse(edge.get("source").asText().isEmpty());
-            assertFalse(edge.get("target").asText().isEmpty());
-            assertTrue(edge.get("weight").asInt() > 0);
-        }
-    }
 
     @Test
     void testConcurrentAccess() {

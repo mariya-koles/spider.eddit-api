@@ -6,14 +6,13 @@ import okhttp3.Response;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.platform.spidereddit.text.WordGraph;
+import org.platform.spidereddit.utility.POSFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
-import java.io.IOException;
-import java.util.Locale;
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.lucene.analysis.CharArraySet;
 import org.apache.lucene.analysis.en.EnglishAnalyzer;
@@ -28,6 +27,7 @@ public class UserHistoryFetcher implements Runnable {
     private final WordGraph wordGraph;
     private final String accessToken;
 
+
     public UserHistoryFetcher(String username, WordGraph wordGraph, String accessToken) {
         this.username = username;
         this.httpClient = new OkHttpClient();
@@ -39,12 +39,32 @@ public class UserHistoryFetcher implements Runnable {
     @Override
     public void run() {
         try {
-            List<String> words = new ArrayList<>();
-            words.addAll(fetchCommentWords());
-            words.addAll(fetchPostWords());
+            String commentText = String.join(" ", fetchCommentWords());
+            String postText = String.join(" ", fetchPostWords());
 
-            if (!words.isEmpty()) {
-                wordGraph.recordCoOccurrences(words.toArray(new String[0]));
+            POSFilter filter = new POSFilter(Set.of("NOUN", "ADJ", "VERB")); // nouns, verbs, adjectives
+
+            List<String> commentWords = filter.filter(commentText);
+            List<String> postWords = filter.filter(postText);
+
+            List<String> words = new ArrayList<>();
+            words.addAll(commentWords);
+            words.addAll(postWords);
+
+
+            Map<String, Integer> frequencyMap = new HashMap<>();
+            for (String word : words) {
+                frequencyMap.put(word, frequencyMap.getOrDefault(word, 0) + 1);
+            }
+
+            List<String> topWords = frequencyMap.entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(500)
+                    .map(Map.Entry::getKey)
+                    .toList();
+
+            if (!topWords.isEmpty()) {
+                wordGraph.recordCoOccurrences(topWords.toArray(new String[0]));
             }
             log.info("Fetched {} words for user: {}", words.size(), username);
 

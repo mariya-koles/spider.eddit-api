@@ -5,7 +5,6 @@ import org.platform.spidereddit.model.GraphEdge;
 import org.platform.spidereddit.model.GraphNode;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,10 +32,24 @@ public class WordGraph {
                         .incrementAndGet();
             }
         }
-
     }
 
-    public void exportToJsonFile(Path outputPath, int minWeight) throws IOException {
+    /**
+     * Returns the word graph as a JSON string for a given min weight threshold
+     */
+    public String toJson(int minWeight) {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return mapper.writeValueAsString(exportData(minWeight));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize graph to JSON", e);
+        }
+    }
+
+    /**
+     * Returns the graph as a map of nodes and edges (for use in service/controller).
+     */
+    public Map<String, Object> exportData(int minWeight) {
         Set<GraphNode> nodes = new HashSet<>();
         List<GraphEdge> edges = new ArrayList<>();
 
@@ -54,17 +67,9 @@ public class WordGraph {
             }
         }
 
-        Map<String, Object> export = Map.of(
+        return Map.of(
                 "nodes", nodes,
                 "edges", edges
         );
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writerWithDefaultPrettyPrinter().writeValue(outputPath.toFile(), export);
     }
-
-
-
-
-
 }
